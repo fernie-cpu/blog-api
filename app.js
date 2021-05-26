@@ -6,12 +6,17 @@ const logger = require('morgan');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const compression = require('compression');
+require('dotenv').config();
+
+const mongodb = process.env.MONGODB;
+mongoose.connect(mongodb, { useNewUrlParser: true, useUnifiedTopology: true });
+const db = mongoose.connection;
+db.on('error', console.error.bind(console, 'mongo connection error'));
 
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
 
 const app = express();
-require('dotenv').config();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
