@@ -3,14 +3,14 @@ const Schema = mongoose.Schema;
 
 const PostSchema = new Schema({
   title: { type: String, required: true },
-  user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  date: { type: Date, default: Date.now() },
   text: { type: String, required: true },
-  date: { type: Date },
   published: { type: Boolean, default: false },
 });
 
 PostSchema.virtual('url').get(function () {
-  return '/api/posts' + this._id;
+  return '/posts' + this._id;
 });
 
 module.exports = mongoose.model('Posts', PostSchema);
