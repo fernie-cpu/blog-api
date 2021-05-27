@@ -1,8 +1,7 @@
-const User = require('../models/user');
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
-const bcrypt = require('bcryptjs');
+require('dotenv').config();
 
 exports.signup = [
   body('username').trim().isLength({ min: 4 }).escape(),
@@ -15,48 +14,36 @@ exports.signup = [
     return true;
   }),
 
-  (req, res, next) => {
-    const errors = validationResult(req);
-
-    bcrypt.hash(req.body.password, 10, (err, hashed) => {
-      let user = new User({
-        username: req.body.username,
-        password: hashed,
-      });
-
-      if (!errors.isEmpty()) {
-        res.sendStatus(418);
-        return;
-      } else {
-        user.save((err) => {
-          if (err) {
-            return next(err);
-          }
-          res.redirect('/login');
-        });
-      }
+  passport.authenticate('signup', { session: false }),
+  async (req, res, next) => {
+    res.json({
+      message: 'Signup successful',
+      user: req.user,
     });
   },
 ];
 
-exports.login = (req, res, next) => {
-  passport.authenticate('login', { session: false }, (err, user, info) => {
-    if (err || !user) {
-      return res.status(400).json({
-        message: 'something wrong is not right',
-        user: req.user,
-      });
-    }
+exports.login = async (req, res, next) => {
+  passport.authenticate('login', async (err, user, info) => {
+    try {
+      if (err || !user) {
+        const error = new Error('An error occurred.');
 
-    req.login(user, { session: false }, (err) => {
-      if (err) {
-        return res.send(err);
+        return next(error);
       }
 
-      const token = jwt.sign(user, process.env.SECRET);
-      return res.json({ user: token });
-    });
-  })(req, res);
+      req.login(user, { session: false }, async (error) => {
+        if (error) return next(error);
+
+        const body = { _id: user._id, username: user.username };
+        const token = jwt.sign({ user: body }, process.env.SECRET);
+
+        return res.json({ token });
+      });
+    } catch (error) {
+      return next(error);
+    }
+  })(req, res, next);
 };
 
 exports.logout = (req, res, next) => {
