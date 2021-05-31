@@ -1,10 +1,24 @@
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
+const User = require('../models/user');
 require('dotenv').config();
 
 exports.signup = [
-  body('username').trim().isLength({ min: 4 }).escape(),
+  body('username')
+    .trim()
+    .isLength({ min: 4 })
+    .escape()
+    .custom(async (username) => {
+      try {
+        const existingUser = await User.findOne({ username: username });
+        if (existingUser) {
+          throw new Error('username already exists');
+        }
+      } catch (err) {
+        throw new Error(err);
+      }
+    }),
   body('password', 'not a valid password').exists(),
   body('confirmPassword').custom((value, { req }) => {
     if (value !== req.body.password) {
@@ -14,12 +28,23 @@ exports.signup = [
     return true;
   }),
 
-  passport.authenticate('signup', { session: false }),
   async (req, res, next) => {
-    res.json({
-      message: 'Signup successful',
-      user: req.user,
-    });
+    passport.authenticate('sign-up', { session: false }, (err, user, info) => {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.json({
+          username: req.body.username,
+          errors: errors.array(),
+        });
+      }
+      if (err) {
+        return next(err);
+      }
+      res.json({
+        message: 'Signup successful',
+        user: req.user,
+      });
+    })(req, res, next);
   },
 ];
 

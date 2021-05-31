@@ -6,7 +6,7 @@ const User = require('./models/user');
 require('dotenv').config();
 
 passport.use(
-  'signup',
+  'sign-up',
   new LocalStrategy(
     { usernameField: 'username', passwordField: 'password' },
     async (username, password, done) => {
